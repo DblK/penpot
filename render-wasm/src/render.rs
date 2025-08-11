@@ -435,11 +435,10 @@ impl RenderState {
                 }
             }
         }
-        // if let Some(nested_blur) = shape.blur {
+
         if !shape.blur.hidden && shape.blur.blur_type == BlurType::Layer {
             nested_blur_value += shape.blur.value.powf(2.);
         }
-        // }
 
         if nested_blur_value > 0. {
             println!("nested_blur_value: {}", nested_blur_value.sqrt());
@@ -771,10 +770,6 @@ impl RenderState {
                 .canvas(SurfaceId::Current)
                 .save_layer(&mask_rec);
         }
-
-        // if let Some(image_filter) = element.image_filter(self.get_scale()) {
-        //     paint.set_image_filter(image_filter);
-        // }
 
         let layer_rec = skia::canvas::SaveLayerRec::default().paint(&paint);
         self.surfaces

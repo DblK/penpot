@@ -25,7 +25,7 @@ pub enum SurfaceId {
     DropShadows = 0b0_0010_0000,
     InnerShadows = 0b0_0100_0000,
     UI = 0b0_1000_0000,
-    Debug = 0b10_0000_0000,
+    Debug = 0b1_0000_0000,
 }
 
 pub struct Surfaces {
