@@ -21,7 +21,7 @@ use options::RenderOptions;
 use surfaces::{SurfaceId, Surfaces};
 
 use crate::performance;
-use crate::shapes::{Corners, Fill, Shape, SolidColor, StructureEntry, Type};
+use crate::shapes::{Blur, BlurType, Corners, Fill, Shape, SolidColor, StructureEntry, Type};
 use crate::state::ShapesPool;
 use crate::tiles::{self, PendingTiles, TileRect};
 use crate::uuid::Uuid;
@@ -176,6 +176,7 @@ pub(crate) struct RenderState {
     // can affect its child elements if they don't specify one themselves. If the planned
     // migration to remove group-level fills is completed, this code should be removed.
     pub nested_fills: Vec<Vec<Fill>>,
+    pub nested_blurs: Vec<Option<Blur>>,
     pub show_grid: Option<Uuid>,
     pub focus_mode: FocusMode,
 }
@@ -244,6 +245,7 @@ impl RenderState {
             ),
             pending_tiles: PendingTiles::new_empty(),
             nested_fills: vec![],
+            nested_blurs: vec![],
             show_grid: None,
             focus_mode: FocusMode::new(),
         }
@@ -423,6 +425,27 @@ impl RenderState {
 
         if let Some(modifiers) = modifiers {
             shape.to_mut().apply_transform(modifiers);
+        }
+
+        let mut nested_blur_value = 0.;
+        for blur in self.nested_blurs.iter() {
+            if let Some(nested_blur) = blur {
+                if !nested_blur.hidden && nested_blur.blur_type == BlurType::Layer {
+                    nested_blur_value += nested_blur.value.powf(2.);
+                }
+            }
+        }
+        // if let Some(nested_blur) = shape.blur {
+        if !shape.blur.hidden && shape.blur.blur_type == BlurType::Layer {
+            nested_blur_value += shape.blur.value.powf(2.);
+        }
+        // }
+
+        if nested_blur_value > 0. {
+            println!("nested_blur_value: {}", nested_blur_value.sqrt());
+            shape
+                .to_mut()
+                .set_blur(BlurType::Layer as u8, false, nested_blur_value.sqrt());
         }
 
         let center = shape.center();
@@ -726,6 +749,13 @@ impl RenderState {
             }
         }
 
+        match element.shape_type {
+            Type::Frame(_) | Type::Group(_) => {
+                self.nested_blurs.push(Some(element.blur.clone()));
+            }
+            _ => {}
+        }
+
         let mut paint = skia::Paint::default();
         paint.set_blend_mode(element.blend_mode().into());
         paint.set_alpha_f(element.opacity());
@@ -801,6 +831,13 @@ impl RenderState {
         }
         if let Type::Group(_) = element.shape_type {
             self.nested_fills.pop();
+        }
+
+        match element.shape_type {
+            Type::Frame(_) | Type::Group(_) => {
+                self.nested_blurs.pop();
+            }
+            _ => {}
         }
 
         // Detect clipping and apply it properly

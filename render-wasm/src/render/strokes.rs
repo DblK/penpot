@@ -11,7 +11,10 @@ use crate::render::{get_dest_rect, get_source_rect};
 
 /// Composes blur and shadow filters, returning a combined filter if both are present,
 /// or the individual filter if only one is present, or None if neither is present.
-fn compose_filters(blur: Option<&ImageFilter>, shadow: Option<&ImageFilter>) -> Option<ImageFilter> {
+fn compose_filters(
+    blur: Option<&ImageFilter>,
+    shadow: Option<&ImageFilter>,
+) -> Option<ImageFilter> {
     match (blur, shadow) {
         (Some(blur_filter), Some(shadow_filter)) => {
             ImageFilter::compose(blur_filter, shadow_filter)
@@ -181,6 +184,7 @@ pub fn draw_stroke_on_path(
         is_open,
         svg_attrs,
         scale,
+        blur,
         antialias,
     );
 }
@@ -194,7 +198,7 @@ fn handle_stroke_cap(
     p2: &Point,
 ) {
     paint.set_style(skia::PaintStyle::Fill);
-    paint.set_blend_mode(skia::BlendMode::Src);
+    // paint.set_blend_mode(skia::BlendMode::Src);
     match cap {
         StrokeCap::None => {}
         StrokeCap::Line => {
@@ -234,6 +238,7 @@ fn handle_stroke_caps(
     is_open: bool,
     svg_attrs: &HashMap<String, String>,
     scale: f32,
+    blur: Option<&ImageFilter>,
     antialias: bool,
 ) {
     let mut points = vec![Point::default(); path.count_points()];
@@ -250,6 +255,10 @@ fn handle_stroke_caps(
         let mut paint_stroke =
             stroke.to_stroked_paint(is_open, selrect, svg_attrs, scale, antialias);
 
+        if let Some(filter) = blur {
+            paint_stroke.set_image_filter(filter.clone());
+        }
+
         handle_stroke_cap(
             canvas,
             stroke.cap_start,
@@ -258,6 +267,7 @@ fn handle_stroke_caps(
             first_point,
             &points[1],
         );
+
         handle_stroke_cap(
             canvas,
             stroke.cap_end,
@@ -404,7 +414,6 @@ fn draw_image_stroke_in_container(
         pb.set_image_filter(filter);
     }
 
-
     let layer_rec = skia::canvas::SaveLayerRec::default().paint(&pb);
     canvas.save_layer(&layer_rec);
 
@@ -472,6 +481,7 @@ fn draw_image_stroke_in_container(
                     is_open,
                     svg_attrs,
                     scale,
+                    shape.image_filter(1.).as_ref(),
                     antialias,
                 );
                 canvas.restore();
@@ -562,7 +572,15 @@ pub fn render(
                 );
             }
             Type::Circle => draw_stroke_on_circle(
-                canvas, stroke, &selrect, &selrect, svg_attrs, scale, shadow, shape.image_filter(1.).as_ref(), antialias,
+                canvas,
+                stroke,
+                &selrect,
+                &selrect,
+                svg_attrs,
+                scale,
+                shadow,
+                shape.image_filter(1.).as_ref(),
+                antialias,
             ),
             //TODO: Add blur and shadow to text
             Type::Text(_) => {
