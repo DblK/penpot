@@ -377,6 +377,7 @@ impl RenderState {
                 Some(&skia::Paint::default()),
             );
         }
+
         let surface_ids = SurfaceId::Strokes as u32
             | SurfaceId::Fills as u32
             | SurfaceId::DropShadows as u32
@@ -468,7 +469,12 @@ impl RenderState {
                     shadows::render_text_drop_shadows(self, &shape, &mut paragraphs, antialias);
                 }
 
-                text::render(self, &shape, &mut paragraphs, None, None);
+                let mut text_paint = skia::Paint::default();
+                if let Some(image_filter) = shape.image_filter(1.) {
+                    text_paint.set_image_filter(image_filter);
+                }
+
+                text::render(self, &shape, &mut paragraphs, None, Some(&text_paint));
 
                 if shape.has_visible_inner_strokes() {
                     // Inner strokes paints need the text fill to apply correctly their blend modes
@@ -736,9 +742,9 @@ impl RenderState {
                 .save_layer(&mask_rec);
         }
 
-        if let Some(image_filter) = element.image_filter(self.get_scale()) {
-            paint.set_image_filter(image_filter);
-        }
+        // if let Some(image_filter) = element.image_filter(self.get_scale()) {
+        //     paint.set_image_filter(image_filter);
+        // }
 
         let layer_rec = skia::canvas::SaveLayerRec::default().paint(&paint);
         self.surfaces
