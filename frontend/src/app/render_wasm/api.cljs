@@ -208,7 +208,7 @@
 (defn- process-fill-image
   [shape-id fill]
   (when-let [image (:fill-image fill)]
-    (let [id (dm/get-prop image :id)
+    (let [id (get image :id)
           buffer (uuid/get-u32 id)
           cached-image? (h/call wasm/internal-module "_is_image_cached"
                                 (aget buffer 0)
@@ -283,7 +283,7 @@
                 (h/call wasm/internal-module "_add_shape_stroke_fill"))
 
               (some? image)
-              (let [image-id      (dm/get-prop image :id)
+              (let [image-id      (get image :id)
                     buffer        (uuid/get-u32 image-id)
                     cached-image? (h/call wasm/internal-module "_is_image_cached" (aget buffer 0) (aget buffer 1) (aget buffer 2) (aget buffer 3))]
                 (types.fills.impl/write-image-fill offset dview opacity image)
@@ -373,11 +373,11 @@
 
 (defn set-shape-corners
   [shape]
-  (let [r1 (dm/get-prop shape :r1)]
+  (let [r1 (get shape :r1)]
     (when (some? r1)
-      (let [r2 (dm/get-prop shape :r2)
-            r3 (dm/get-prop shape :r3)
-            r4 (dm/get-prop shape :r4)]
+      (let [r2 (get shape :r2)
+            r3 (get shape :r3)
+            r4 (get shape :r4)]
         (h/call wasm/internal-module "_set_shape_corners"
                 (d/nilv r1 0)
                 (d/nilv r2 0)
