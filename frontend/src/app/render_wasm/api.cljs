@@ -684,33 +684,36 @@
   [objects shape]
   (perf/begin-measure "set-object")
   (let [id           (dm/get-prop shape :id)
-        parent-id    (dm/get-prop shape :parent-id)
         type         (dm/get-prop shape :type)
-        masked       (dm/get-prop shape :masked-group)
-        selrect      (dm/get-prop shape :selrect)
-        constraint-h (dm/get-prop shape :constraints-h)
-        constraint-v (dm/get-prop shape :constraints-v)
+
+        parent-id    (get shape :parent-id)
+        masked       (get shape :masked-group)
+        selrect      (get shape :selrect)
+        constraint-h (get shape :constraints-h)
+        constraint-v (get shape :constraints-v)
         clip-content (if (= type :frame)
-                       (not (dm/get-prop shape :show-content))
+                       (not (get shape :show-content))
                        false)
-        rotation     (dm/get-prop shape :rotation)
-        transform    (dm/get-prop shape :transform)
+        rotation     (get shape :rotation)
+        transform    (get shape :transform)
 
         ;; Groups from imported SVG's can have their own fills
-        fills        (dm/get-prop shape :fills)
+        fills        (get shape :fills)
 
         strokes      (if (= type :group)
-                       [] (dm/get-prop shape :strokes))
-        children     (dm/get-prop shape :shapes)
-        blend-mode   (dm/get-prop shape :blend-mode)
-        opacity      (dm/get-prop shape :opacity)
-        hidden       (dm/get-prop shape :hidden)
-        content      (dm/get-prop shape :content)
-        bool-type    (dm/get-prop shape :bool-type)
-        grow-type    (dm/get-prop shape :grow-type)
-        blur         (dm/get-prop shape :blur)
-        svg-attrs    (dm/get-prop shape :svg-attrs)
-        shadows      (dm/get-prop shape :shadow)]
+                       []
+                       (get shape :strokes))
+
+        children     (get shape :shapes)
+        blend-mode   (get shape :blend-mode)
+        opacity      (get shape :opacity)
+        hidden       (get shape :hidden)
+        content      (get shape :content)
+        bool-type    (get shape :bool-type)
+        grow-type    (get shape :grow-type)
+        blur         (get shape :blur)
+        svg-attrs    (get shape :svg-attrs)
+        shadows      (get shape :shadow)]
 
     (use-shape id)
     (set-parent-id parent-id)
