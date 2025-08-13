@@ -404,8 +404,9 @@
   [{:keys [::db/conn]} {:keys [id]} & {:as opts}]
   (l/dbg :hint "migrating file" :file-id (str id))
   (let [{:keys [id data index created-at modified-at]}
-        (db/get conn :file {:id id}
-                ::db/for-update true)]
+        (db/get* conn :file {:id id}
+                 ::db/for-update true
+                 ::db/remove-deleted false)]
     (db/update! conn :file {:data nil} {:id id} ::db/return-keys false)
     (db/insert! conn :file-data
                 {:backend "db"
@@ -423,8 +424,9 @@
   [{:keys [::db/conn]} {:keys [id file-id]} & {:as opts}]
   (l/dbg :hint "rollback file" :file-id (str id))
   (let [{:keys [id data]}
-        (db/get conn :file-data {:id id :file-id file-id}
-                ::db/for-update true)]
+        (db/get* conn :file-data {:id id :file-id file-id}
+                 ::db/for-update true
+                 ::db/remove-deleted false)]
     (db/update! conn :file {:data data} {:id id} ::db/return-keys false)
     (db/delete! conn :file-data {:id id} ::db/return-keys false)))
 
