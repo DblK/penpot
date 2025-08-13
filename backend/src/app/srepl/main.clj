@@ -626,18 +626,13 @@
                           0)))]
 
     (try
-      (loop [total 0]
-        (let [result (db/tx-run! main/system process-items)
-              total  (+ total result)]
-          (l/dbg :hint "chunk processed" :total total :chunk result)
-          (when (pos? result)
-            (recur total))))
+      (db/tx-run! main/system process-items)
 
       (catch Throwable cause
         (l/dbg :hint "process:error" :cause cause))
 
       (finally
-        (pu/close! executor)
+        (px/shutdown! executor)
         (let [elapsed (ct/format-duration (tpoint))]
           (l/dbg :hint "process:end"
                  :rollback rollback?
