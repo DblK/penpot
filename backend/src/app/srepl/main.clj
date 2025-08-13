@@ -612,7 +612,7 @@
         (fn [idx row]
           (l/dbg :hint "schedulint task" :item-id (str (:id row)) :index idx)
           (ps/acquire! sjobs)
-          (px/run! executor (partial process-item idx (ct/tpoint) row))
+          (px/run! executor (partial process-item idx (ct/tpoint) (into {} row)))
           (inc idx))
 
         process-items
