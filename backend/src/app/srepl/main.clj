@@ -608,7 +608,6 @@
         process-item*
         (fn [idx row]
           (ps/acquire! sjobs)
-          (l/dbg :hint "schedulint task" :item-id (str (:id row)) :index idx)
           (px/run! executor (partial process-item idx (ct/tpoint) (into {} row)))
           (inc idx))
 
