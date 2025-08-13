@@ -390,9 +390,7 @@
      FROM file AS f
     WHERE f.data IS NOT NULL
     ORDER BY f.modified_at ASC
-    LIMIT ?
-      FOR UPDATE
-     SKIP LOCKED")
+    LIMIT ?")
 
 (def sql:get-migrated-files
   "SELECT f.id, f.data
@@ -400,9 +398,7 @@
     WHERE f.data IS NOT NULL
       AND f.id = f.file_id
     ORDER BY f.id ASC
-    LIMIT ?
-      FOR UPDATE
-     SKIP LOCKED")
+    LIMIT ?")
 
 (defn migrate-files-to-storage
   "Migrate the current existing files to store data in new storage
@@ -434,9 +430,7 @@
     WHERE fc.data IS NOT NULL
       AND f.label IS NOT NULL
     ORDER BY f.id ASC
-    LIMIT ?
-      FOR UPDATE
-     SKIP LOCKED")
+    LIMIT ?")
 
 (def sql:get-migrated-snapshots
   "SELECT f.id, f.data, f.file_id
@@ -445,9 +439,7 @@
       AND f.type = 'snapshot'
       AND f.id != f.file_id
     ORDER BY f.id ASC
-    LIMIT ?
-      FOR UPDATE
-     SKIP LOCKED")
+    LIMIT ?")
 
 (defn migrate-snapshots-to-storage
   "Migrate the current existing files to store data in new storage
