@@ -386,13 +386,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def sql:get-unmigrated-files
-  "SELECT f.id, f.data, f.created_at, f.modified_at
+  "SELECT f.id
      FROM file AS f
     WHERE f.data IS NOT NULL
     ORDER BY f.modified_at ASC")
 
 (def sql:get-migrated-files
-  "SELECT f.id, f.data
+  "SELECT f.id, f.file_id
      FROM file_data AS f
     WHERE f.data IS NOT NULL
       AND f.id = f.file_id
@@ -401,26 +401,32 @@
 (defn migrate-files-to-storage
   "Migrate the current existing files to store data in new storage
   tables."
-  [{:keys [::db/conn]} {:keys [id data index created-at modified-at]} & {:as opts}]
+  [{:keys [::db/conn]} {:keys [id]} & {:as opts}]
   (l/dbg :hint "migrating file" :file-id (str id))
-  (db/update! conn :file {:data nil} {:id id} ::db/return-keys false)
-  (db/insert! conn :file-data
-              {:backend "db"
-               :metadata nil
-               :type "main"
-               :data data
-               :created-at created-at
-               :modified-at modified-at
-               :file-id id
-               :id id}
-              {::db/return-keys false}))
+  (let [{:keys [id data index created-at modified-at]}
+        (db/get conn :file {:id id}
+                ::db/for-update true)]
+    (db/update! conn :file {:data nil} {:id id} ::db/return-keys false)
+    (db/insert! conn :file-data
+                {:backend "db"
+                 :metadata nil
+                 :type "main"
+                 :data data
+                 :created-at created-at
+                 :modified-at modified-at
+                 :file-id id
+                 :id id}
+                {::db/return-keys false})))
 
 (defn rollback-files-from-storage
   "Migrate back to the file table storage."
-  [{:keys [::db/conn]} {:keys [id data]} & {:as opts}]
+  [{:keys [::db/conn]} {:keys [id file-id]} & {:as opts}]
   (l/dbg :hint "rollback file" :file-id (str id))
-  (db/update! conn :file {:data data} {:id id} ::db/return-keys false)
-  (db/delete! conn :file-data {:id id} ::db/return-keys false))
+  (let [{:keys [id data]}
+        (db/get conn :file-data {:id id :file-id file-id}
+                ::db/for-update true)]
+    (db/update! conn :file {:data data} {:id id} ::db/return-keys false)
+    (db/delete! conn :file-data {:id id} ::db/return-keys false)))
 
 (def sql:get-unmigrated-snapshots
   "SELECT fc.id, fc.data, fc.file_id, fc.created_at, fc.updated_at AS modified_at
