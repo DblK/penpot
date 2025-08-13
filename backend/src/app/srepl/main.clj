@@ -576,6 +576,7 @@
 
         process-item
         (fn [idx tpoint row]
+          (prn row)
           (let [thread-id (px/get-thread-id)]
             (try
               (l/trc :hint "process:item:start"
