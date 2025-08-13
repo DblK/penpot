@@ -617,7 +617,7 @@
           (db/exec! conn ["SET statement_timeout = 0"])
           (db/exec! conn ["SET idle_in_transaction_session_timeout = 0"])
 
-          (->> (db/plan conn [query] {:fetch-size 1})
+          (->> (db/plan conn [query] {:fetch-size max-jobs})
                (transduce (take max-items)
                           (completing process-item*)
                           0)))]
