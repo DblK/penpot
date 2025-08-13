@@ -389,16 +389,14 @@
   "SELECT f.id, f.data, f.created_at, f.modified_at
      FROM file AS f
     WHERE f.data IS NOT NULL
-    ORDER BY f.modified_at ASC
-    LIMIT ?")
+    ORDER BY f.modified_at ASC")
 
 (def sql:get-migrated-files
   "SELECT f.id, f.data
      FROM file_data AS f
     WHERE f.data IS NOT NULL
       AND f.id = f.file_id
-    ORDER BY f.id ASC
-    LIMIT ?")
+    ORDER BY f.id ASC")
 
 (defn migrate-files-to-storage
   "Migrate the current existing files to store data in new storage
@@ -429,8 +427,7 @@
      FROM file_change AS fc
     WHERE fc.data IS NOT NULL
       AND f.label IS NOT NULL
-    ORDER BY f.id ASC
-    LIMIT ?")
+    ORDER BY f.id ASC")
 
 (def sql:get-migrated-snapshots
   "SELECT f.id, f.data, f.file_id
@@ -438,8 +435,7 @@
     WHERE f.data IS NOT NULL
       AND f.type = 'snapshot'
       AND f.id != f.file_id
-    ORDER BY f.id ASC
-    LIMIT ?")
+    ORDER BY f.id ASC")
 
 (defn migrate-snapshots-to-storage
   "Migrate the current existing files to store data in new storage
