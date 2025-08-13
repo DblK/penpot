@@ -462,6 +462,6 @@
 (defn rollback-snapshots-from-storage
   "Migrate back to the file table storage."
   [{:keys [::db/conn]} {:keys [id file-id data]} & {:as opts}]
-  (l/dbg :hint "rollback snapshot" :file-id (str id) :id (str id))
+  (l/dbg :hint "rollback snapshot" :file-id (str file-id) :id (str id))
   (db/update! conn :file-change {:data data} {:id id :file-id file-id} ::db/return-keys false)
   (db/delete! conn :file-data {:id id :file-id file-id} ::db/return-keys false))
