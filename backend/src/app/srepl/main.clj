@@ -607,8 +607,8 @@
 
         process-item*
         (fn [idx row]
-          (l/dbg :hint "schedulint task" :item-id (str (:id row)) :index idx)
           (ps/acquire! sjobs)
+          (l/dbg :hint "schedulint task" :item-id (str (:id row)) :index idx)
           (px/run! executor (partial process-item idx (ct/tpoint) (into {} row)))
           (inc idx))
 
@@ -617,7 +617,7 @@
           (db/exec! conn ["SET statement_timeout = 0"])
           (db/exec! conn ["SET idle_in_transaction_session_timeout = 0"])
 
-          (->> (db/plan conn [query] {:fetch-size (* max-jobs 2)})
+          (->> (db/plan conn [query] {:fetch-size 1})
                (transduce (take max-items)
                           (completing process-item*)
                           0)))]
