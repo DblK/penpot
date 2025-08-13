@@ -7,6 +7,7 @@
 (ns app.main.ui.ds.controls.utilities.token-field
   (:require-macros [app.main.style :as stl])
   (:require
+   [app.common.data :as d]
    [app.common.data.macros :as dm]
    [app.main.ui.ds.buttons.icon-button :refer [icon-button*]]
    [app.main.ui.ds.tooltip :refer [tooltip*]]
@@ -28,28 +29,31 @@
    [:detach-token fn?]])
 
 (mf/defc token-field*
-  {::mf/private true
-   ::mf/schema schema:token-field}
+  {::mf/schema schema:token-field}
   [{:keys [id label value slot-start disabled
            on-click on-token-key-down on-blur detach-token
            token-wrapper-ref token-detach-btn-ref]}]
   (let [set-active? (some? id)
-        content (if set-active?
-                  label
-                  (tr "workspace.token.no-active-token-option"))
-        default-id (mf/use-id)
-        id (or id default-id)
+        content     (if set-active?
+                      label
+                      (tr "workspace.token.no-active-token-option"))
+        default-id  (mf/use-id)
+        id          (d/nilv id default-id)
+
         focus-wrapper
         (mf/use-fn
-         (mf/deps token-wrapper-ref disabled)
+         (mf/deps disabled)
          (fn [event]
-           (when-not disabled
+           (when-not ^boolean disabled
              (dom/prevent-default event)
-             (dom/focus! (mf/ref-val token-wrapper-ref)))))]
+             (dom/focus! (mf/ref-val token-wrapper-ref)))))
 
-    [:div {:class (stl/css-case :token-field true
-                                :with-icon (some? slot-start)
-                                :token-field-disabled disabled)
+        class
+        (stl/css-case :token-field true
+                      :with-icon (some? slot-start)
+                      :token-field-disabled disabled)]
+
+    [:div {:class class
            :on-click focus-wrapper
            :disabled disabled
            :on-key-down on-token-key-down
@@ -57,8 +61,8 @@
            :on-blur on-blur
            :tab-index (if disabled -1 0)}
 
-     (when (some? slot-start)
-       slot-start)
+     (when (some? slot-start) slot-start)
+
      [:> tooltip* {:content content
                    :id (dm/str id "-pill")}
       [:button {:on-click on-click
@@ -72,7 +76,7 @@
        (when-not set-active?
          [:div {:class (stl/css :pill-dot)}])]]
 
-     (when-not disabled
+     (when-not ^boolean disabled
        [:> icon-button* {:variant "action"
                          :class (stl/css :invisible-button)
                          :icon "broken-link"
