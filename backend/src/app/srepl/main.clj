@@ -629,7 +629,7 @@
         (l/dbg :hint "process:error" :cause cause))
 
       (finally
-        (px/shutdown! executor)
+        (pu/close! executor)
         (let [elapsed (ct/format-duration (tpoint))]
           (l/dbg :hint "process:end"
                  :rollback rollback?
