@@ -619,14 +619,10 @@
           (db/exec! conn ["SET statement_timeout = 0"])
           (db/exec! conn ["SET idle_in_transaction_session_timeout = 0"])
 
-          (try
-            (->> (db/plan conn [query max-chunk] {:chunk-size max-jobs})
-                 (transduce (take max-items)
-                            (completing process-item*)
-                            0))
-            (finally
-              ;; Close and await tasks
-              (pu/close! executor))))]
+          (->> (db/plan conn [query max-chunk] {:chunk-size max-jobs})
+               (transduce (take max-items)
+                          (completing process-item*)
+                          0)))]
 
     (try
       (loop [total 0]
@@ -640,6 +636,7 @@
         (l/dbg :hint "process:error" :cause cause))
 
       (finally
+        (pu/close! executor)
         (let [elapsed (ct/format-duration (tpoint))]
           (l/dbg :hint "process:end"
                  :rollback rollback?
