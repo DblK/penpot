@@ -554,10 +554,12 @@
   "Apply a function to all files in the database"
   [& {:keys [max-items
              max-jobs
+             max-chunk
              rollback?
              query
              proc-fn]
       :or {max-items Long/MAX_VALUE
+           max-chunk 1000
            rollback? true}
       :as opts}]
 
@@ -615,7 +617,7 @@
           (db/exec! conn ["SET idle_in_transaction_session_timeout = 0"])
 
           (try
-            (->> (db/plan conn [query] {:chunk-size 1})
+            (->> (db/plan conn [query max-chunk] {:chunk-size max-jobs})
                  (transduce (take max-items)
                             (completing process-item*)
                             0))
@@ -624,7 +626,12 @@
               (pu/close! executor))))]
 
     (try
-      (db/tx-run! main/system process-items)
+      (loop [total 0]
+        (let [result (db/tx-run! main/system process-items)
+              total  (+ total result)]
+          (l/dbg :hint "chunk processed" :total total :chunk result)
+          (when (pos? result)
+            (recur total))))
 
       (catch Throwable cause
         (l/dbg :hint "process:error" :cause cause))
