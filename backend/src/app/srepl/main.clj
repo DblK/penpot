@@ -550,6 +550,90 @@
                  :rollback rollback?
                  :elapsed elapsed))))))
 
+(defn process!
+  "Apply a function to all files in the database"
+  [& {:keys [max-items
+             max-jobs
+             rollback?
+             query
+             proc-fn]
+      :or {max-items Long/MAX_VALUE
+           rollback? true}
+      :as opts}]
+
+  (l/dbg :hint "process:start"
+         :rollback rollback?
+         :max-jobs max-jobs
+         :max-items max-items)
+
+  (let [tpoint    (ct/tpoint)
+        factory   (px/thread-factory :virtual false :prefix "penpot/process/")
+        executor  (px/cached-executor :factory factory)
+        sjobs     (ps/create :permits max-jobs)
+        max-jobs  (or max-jobs (px/get-available-processors))
+
+        process-item
+        (fn [idx tpoint row]
+          (let [thread-id (px/get-thread-id)]
+            (try
+              (l/trc :hint "process:item:start"
+                     :tid thread-id
+                     :index idx)
+
+              (-> main/system
+                  (assoc ::db/rollback rollback?)
+                  (db/tx-run! (fn [system]
+                                (binding [h/*system* system
+                                          db/*conn* (db/get-connection system)]
+                                  (proc-fn system row opts)))))
+
+              (catch Throwable cause
+                (l/wrn :hint "unexpected error on processing file (skiping)"
+                       :tid thread-id
+                       :index idx
+                       :cause cause))
+              (finally
+                (when-let [pause (:pause opts)]
+                  (Thread/sleep (int pause)))
+
+                (ps/release! sjobs)
+                (let [elapsed (ct/format-duration (tpoint))]
+                  (l/trc :hint "process:item:end"
+                         :tid thread-id
+                         :index idx
+                         :elapsed elapsed))))))
+
+        process-item*
+        (fn [idx row]
+          (ps/acquire! sjobs)
+          (px/run! executor (partial process-item idx (ct/tpoint) row))
+          (inc idx))
+
+        process-items
+        (fn [{:keys [::db/conn] :as system}]
+          (db/exec! conn ["SET statement_timeout = 0"])
+          (db/exec! conn ["SET idle_in_transaction_session_timeout = 0"])
+
+          (try
+            (->> (db/plan conn [query] {:chunk-size 1})
+                 (transduce (take max-items)
+                            (completing process-item*)
+                            0))
+            (finally
+              ;; Close and await tasks
+              (pu/close! executor))))]
+
+    (try
+      (db/tx-run! main/system process-items)
+
+      (catch Throwable cause
+        (l/dbg :hint "process:error" :cause cause))
+
+      (finally
+        (let [elapsed (ct/format-duration (tpoint))]
+          (l/dbg :hint "process:end"
+                 :rollback rollback?
+                 :elapsed elapsed))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; DELETE/RESTORE OBJECTS (WITH CASCADE, SOFT)
