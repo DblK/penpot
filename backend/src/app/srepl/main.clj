@@ -590,8 +590,9 @@
                                   (proc-fn system row opts)))))
 
               (catch Throwable cause
-                (l/wrn :hint "unexpected error on processing file (skiping)"
+                (l/wrn :hint "unexpected error on processing item (skiping)"
                        :tid thread-id
+                       :item-id (str (:id row))
                        :index idx
                        :cause cause))
               (finally
@@ -602,11 +603,13 @@
                 (let [elapsed (ct/format-duration (tpoint))]
                   (l/trc :hint "process:item:end"
                          :tid thread-id
+                         :item-id (str (:id row))
                          :index idx
                          :elapsed elapsed))))))
 
         process-item*
         (fn [idx row]
+          (l/dbg :hint "schedulint task" :item-id (str (:id row)) :index idx)
           (ps/acquire! sjobs)
           (px/run! executor (partial process-item idx (ct/tpoint) row))
           (inc idx))
